@@ -826,13 +826,26 @@
     return (s || "").toLowerCase();
   }
 
+  // Bulgarian names are "First Patronymic Surname" (3 words). Split the
+  // query into words and require each query word to match some word in the
+  // name -- so "Бойко Борисов" matches "Бойко Методиев Борисов" without
+  // needing the father's name typed in.
+  function matchesName(nameNorm, qWords) {
+    if (qWords.length === 1) return nameNorm.indexOf(qWords[0]) !== -1;
+    var nameWords = nameNorm.split(/\s+/).filter(Boolean);
+    return qWords.every(function (qw) {
+      return nameWords.some(function (nw) { return nw.indexOf(qw) !== -1; });
+    });
+  }
+
   function search(query) {
     var q = normalize(query).trim();
     if (q.length < 2) return [];
+    var qWords = q.split(/\s+/).filter(Boolean);
     var out = [];
     for (var i = 0; i < PEOPLE.length && out.length < 40; i++) {
       var p = PEOPLE[i];
-      if (normalize(p.n).indexOf(q) !== -1) out.push(p);
+      if (matchesName(normalize(p.n), qWords)) out.push(p);
     }
     return out;
   }
